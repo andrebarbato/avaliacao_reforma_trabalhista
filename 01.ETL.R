@@ -27,5 +27,26 @@ unr <- WDI::WDI(country = "all",
                 indicator = "SL.UEM.TOTL.NE.ZS") |>
   tidyr::as_tibble()
 
+# baixando indicadores do World Governance Indicators - World Bank (WGI) ------
+
+coc <- WDI::WDI(country = "all", 
+                indicator = "CC.EST") |>
+  tidyr::as_tibble()
+
+psv <- WDI::WDI(country = "all", 
+                indicator = "PV.EST") |>
+  tidyr::as_tibble()
+
 # baixando indicadores do International Labour Organization (ILO) ------
 
+wdi_data <- WDI::WDI_data
+
+wdi_countries <- wdi_data$country |> 
+  filter(region != "Aggregates")
+
+
+wdi_aggregates <- wdi_countries |> 
+  filter(region == "Aggregates")
+
+ec <- wdi_countries |> 
+  filter(capital == "")
