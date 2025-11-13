@@ -2,43 +2,6 @@
 
 # baixando indicadores do World Development Indicators - World Bank (WDI) ------
 
-# Taxa de crescimento do PIB anual
-gdp <- WDI::WDI(country = "all", 
-                indicator = "NY.GDP.MKTP.KD.ZG") |>
-  tidyr::as_tibble()
-
-# Taxa de inflação anual
-icp <- WDI::WDI(country = "all", 
-                indicator = "FP.CPI.TOTL.ZG") |>
-  tidyr::as_tibble()
-
-# Taxa de câmbio
-oer <- WDI::WDI(country = "all", 
-                indicator = "PA.NUS.FCRF") |>
-  tidyr::as_tibble()
-
-# Taxa de juros real
-rir <- WDI::WDI(country = "all", 
-                indicator = "FR.INR.RINR") |>
-  tidyr::as_tibble()
-
-# Taxa de desemprego
-unr <- WDI::WDI(country = "all", 
-                indicator = "SL.UEM.TOTL.NE.ZS") |>
-  tidyr::as_tibble()
-
-# baixando indicadores do World Governance Indicators - World Bank (WGI) ------
-
-coc <- WDI::WDI(country = "all", 
-                indicator = "CC.EST") |>
-  tidyr::as_tibble()
-
-psv <- WDI::WDI(country = "all", 
-                indicator = "PV.EST") |>
-  tidyr::as_tibble()
-
-# baixando indicadores do International Labour Organization (ILO) ------
-
 wdi_data <- WDI::WDI_data
 
 wdi_countries <- wdi_data$country |> 
@@ -48,5 +11,25 @@ wdi_countries <- wdi_data$country |>
 wdi_aggregates <- wdi_countries |> 
   filter(region == "Aggregates")
 
-ec <- wdi_countries |> 
-  filter(capital == "")
+# vetor de indicadores: PIB, Inflação, Tx. Câmbio, Tx. Juros Real,
+# Tx. Desemprego, indicadores de governança de corrupção e estabilidade Política e 
+# violência e terrorismo
+indicators <- c("NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG",
+                "PA.NUS.FCRF", "FR.INR.RINR", "SL.UEM.TOTL.NE.ZS",
+                "CC.EST", "PV.EST")
+
+
+raw_indicators <- WDI::WDI(country = "all", 
+                           indicator = indicators) |> 
+  tidyr::as_tibble() |> 
+  dplyr::rename(gdp = "NY.GDP.MKTP.KD.ZG",
+                cpi = "FP.CPI.TOTL.ZG",
+                exr = "PA.NUS.FCRF",
+                inr = "FR.INR.RINR",
+                unr = "SL.UEM.TOTL.NE.ZS",
+                coc = "CC.EST",
+                pos = "PV.EST")
+
+readr::write_csv(x = raw_indicators,
+                 file = "/data/raw_indicators.csv")
+
