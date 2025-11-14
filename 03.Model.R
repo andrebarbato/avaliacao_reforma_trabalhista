@@ -1,5 +1,40 @@
 # Estimando o modelo SDID
 
+# criando a matriz 3D de covaráveis
+T0 <- lac_indicators |> unique() |> length()
+N0 <- lac_indicators$country |> unique() |> length()
+C0 <- 6
+
+l_lac_indicators <- lac_indicators |>
+  dplyr::select(country, year, gdp, cpi, exr, inr, coc, pos) |> 
+  tidyr::pivot_longer(
+    !c(country,year),
+    names_to = "covariate",
+    values_to = "value"
+  ) |> 
+  tidyr::pivot_wider(
+    names_from = year,
+    values_from = value,
+  ) |> 
+  dplyr::arrange(covariate)
+
+cov <- l_lac_indicators$covariate |> unique()
+
+a <- NULL
+
+abind::abind(a,b, rev.along = 0)
+             
+for (i in cov) {
+  
+  segment <- l_lac_indicators |> filter(covariate == i)
+  
+  b <- array(as.data.frame(segment[3:20]), dim = c(N0,T0))
+}
+
+c <- array(,
+  dim = c(N0,T0,C0)
+  )
+
 # Set seed for reproducibility
 set.seed(12345)
 
@@ -10,7 +45,7 @@ setup = synthdid::panel.matrices(as.data.frame(lac_indicators),
                                  treatment = "treat")
 
 # Estimate treatment effect using SynthDiD
-tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0)
+tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0, X = a)
 print(summary(tau.hat))
 
 # Calculate standard errors 
