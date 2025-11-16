@@ -3,7 +3,7 @@
 # criando a matriz 3D de covaráveis
 T0 <- lac_indicators |> unique() |> length()
 N0 <- lac_indicators$country |> unique() |> length()
-C0 <- 6
+C0 <- l_lac_indicators$covariate |> unique() |> length()
 
 l_lac_indicators <- lac_indicators |>
   dplyr::select(country, year, gdp, cpi, exr, inr, coc, pos) |> 
@@ -11,41 +11,35 @@ l_lac_indicators <- lac_indicators |>
     !c(country,year),
     names_to = "covariate",
     values_to = "value"
-  ) |> 
-  tidyr::pivot_wider(
-    names_from = year,
-    values_from = value,
-  ) |> 
-  dplyr::arrange(covariate)
+  ) |>
+  dplyr::arrange(covariate, year)
 
-cov <- l_lac_indicators$covariate |> unique()
-
-a <- NULL
-
-abind::abind(a,b, rev.along = 0)
-             
-for (i in cov) {
-  
-  segment <- l_lac_indicators |> filter(covariate == i)
-  
-  b <- array(as.data.frame(segment[3:20]), dim = c(N0,T0))
-}
-
-c <- array(,
+a <- array(l_lac_indicators$value,
   dim = c(N0,T0,C0)
   )
 
 # Set seed for reproducibility
 set.seed(12345)
 
+# Ajustando a variável dependente Taxa de Desemprego para as variáveis independentes
+# ou time-varying covariates
+lac_indicators$adj.unr <- xsynthdid::adjust.outcome.for.x(
+  lac_indicators,
+  unit="country",
+  time = "year",
+  outcome = "unr",
+  treatment = "treat", 
+  x=c("gdp", "cpi", "exr", "inr", "coc", "pos"))
+
+# Prepara a matriz pm considerando a variável independente ajustada
 setup = synthdid::panel.matrices(as.data.frame(lac_indicators),
                                  unit = "country",
                                  time = "year",
-                                 outcome = "unr",
+                                 outcome = "adj.unr",
                                  treatment = "treat")
 
 # Estimate treatment effect using SynthDiD
-tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0, X = a)
+tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0)
 print(summary(tau.hat))
 
 # Calculate standard errors 
@@ -69,20 +63,9 @@ plot(tau.hat, overlay=1, se.method='placebo')
 plot(tau.hat, overlay=.8, se.method='placebo')
 ggsave('../figures/results_simple.png')
 
-# Check the number of treatment and control countries to report
-num_treated <- length(unique(dt[treat==1]$country))
-num_control <- length(unique(dt$country))-num_treated
-
 # Create spaghetti plot with top 10 control units
-top.controls = synthdid_controls(tau.hat)[1:10, , drop=FALSE]
-plot(tau.hat, spaghetti.units=rownames(top.controls),
-     trajectory.linetype = 1, line.width=.75, 
-     trajectory.alpha=.9, effect.alpha=.9,
-     diagram.alpha=1, onset.alpha=.9, ci.alpha = .3, spaghetti.line.alpha	=.2,
-     spaghetti.label.alpha = .1, overlay = 1) + 
-  labs(x = 'Period', y = 'unemployment', title = 'Estimation Results', 
-       subtitle = paste0(te_est, ', ', CI, '.'), 
-       caption = paste0('The number of treatment and control units: ', num_treated, ' and ', num_control, '.'))
+top.controls = synthdid_controls(tau.hat)[1:3, , drop=FALSE]
+plot(estimate, spaghetti.units=rownames(top.controls))
 ggsave('../figures/results.png')
 
 fe <- feols(unr~treat, lac_indicators, cluster = 'country', panel.id = 'country', 
