@@ -1,18 +1,20 @@
 # Estimando o modelo SDID
 
 # criando a matriz 3D de covaráveis
-T0 <- lac_indicators |> unique() |> length()
+T0 <- lac_indicators$year |> unique() |> length()
 N0 <- lac_indicators$country |> unique() |> length()
-C0 <- l_lac_indicators$covariate |> unique() |> length()
+
 
 l_lac_indicators <- lac_indicators |>
-  dplyr::select(country, year, gdp, cpi, exr, inr, coc, pos) |> 
+  dplyr::select(country, year, d_gdp, d_cpi, v_exr, v_inr, d_coc, d_pos) |> 
   tidyr::pivot_longer(
     !c(country,year),
     names_to = "covariate",
     values_to = "value"
   ) |>
   dplyr::arrange(covariate, year)
+
+C0 <- l_lac_indicators$covariate |> unique() |> length()
 
 a <- array(l_lac_indicators$value,
   dim = c(N0,T0,C0)
@@ -27,9 +29,9 @@ lac_indicators$adj.unr <- xsynthdid::adjust.outcome.for.x(
   lac_indicators,
   unit="country",
   time = "year",
-  outcome = "unr",
+  outcome = "d_unr",
   treatment = "treat", 
-  x=c("gdp", "cpi", "exr", "inr", "coc", "pos"))
+  x=c("d_gdp", "d_cpi", "v_exr", "v_inr", "d_coc", "d_pos"))
 
 # Prepara a matriz pm considerando a variável independente ajustada
 setup = synthdid::panel.matrices(as.data.frame(lac_indicators),
@@ -64,11 +66,11 @@ plot(tau.hat, overlay=.8, se.method='placebo')
 ggsave('../figures/results_simple.png')
 
 # Create spaghetti plot with top 10 control units
-top.controls = synthdid_controls(tau.hat)[1:3, , drop=FALSE]
-plot(estimate, spaghetti.units=rownames(top.controls))
+top.controls = synthdid_controls(tau.hat)
+plot(tau.hat, spaghetti.units=rownames(top.controls))
 ggsave('../figures/results.png')
 
-fe <- feols(unr~treat, lac_indicators, cluster = 'country', panel.id = 'country', 
+fe <- feols(d_unr~treat, lac_indicators, cluster = 'country', panel.id = 'country', 
             fixef = c('country', 'year'))
 summary(fe)
 summary(tau.hat)

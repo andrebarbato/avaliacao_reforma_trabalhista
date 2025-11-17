@@ -37,3 +37,48 @@ ggplot2::ggsave("figs/fig2.png",
                 fig2,
                 width = 8.5,
                 height = 5.5)
+
+## Taxa de desemprego do Brasil
+lac_indicators |> 
+  dplyr::filter(country == "Brazil") |> 
+  dplyr::select(year, unr) |> 
+  ggplot2::ggplot(
+    aes(x = year, y = unr)
+  ) +
+  geom_line()
+
+## GDP do Brasil
+lac_indicators |> 
+  dplyr::filter(country == "Brazil") |> 
+  dplyr::select(year, gdp) |> 
+  ggplot2::ggplot(
+    aes(x = year, y = gdp)
+  ) +
+  geom_line()
+
+## inflação do Brasil
+lac_indicators |> 
+  dplyr::filter(country == "Brazil") |> 
+  dplyr::select(year, cpi) |> 
+  ggplot2::ggplot(
+    aes(x = year, y = cpi)
+  ) +
+  geom_line()
+
+## taxa de cambio do Brasil
+lac_indicators |> 
+  dplyr::filter(country == "Brazil") |> 
+  dplyr::select(year, exr) |> 
+  ggplot2::ggplot(
+    aes(x = year, y = exr)
+  ) +
+  geom_line()
+
+## taxa de cambio do Brasil
+lac_indicators |> 
+  dplyr::filter(country == "Brazil") |> 
+  dplyr::select(year, inr) |> 
+  ggplot2::ggplot(
+    aes(x = year, y = inr)
+  ) +
+  geom_line()

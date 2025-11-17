@@ -47,12 +47,28 @@ selected_countries <- c("Bolivia", "Chile", "Colombia",
 # filtrando países da américa latina e caribe
 lac_indicators <- raw_indicators |> 
   dplyr::filter(region == "Latin America & Caribbean",
-                year %in% c(2003:2020),
+                #year %in% c(2003:2020),
                 country %in% selected_countries)
+
+# tratamento das variáveis para o modelo
+lac_indicators <- lac_indicators |> 
+  mutate(
+    d_gdp = gdp - dplyr::lag(gdp),
+    d_cpi = cpi - dplyr::lag(cpi),
+    d_unr = unr - dplyr::lag(unr),
+    d_coc = coc - dplyr::lag(coc),
+    d_pos = pos - dplyr::lag(pos),
+    v_exr = exr/dplyr::lag(exr)-1,
+    v_inr = inr/dplyr::lag(inr)-1,
+  )
+
+# filtro do período
+lac_indicators <- lac_indicators |> 
+  filter(year %in% c(2003:2023))
 
 # Checando NAs por país
 lac_indicators |>
-  dplyr::select(country, gdp, cpi, exr, inr, unr, coc, pos) |> 
+  dplyr::select(country, d_gdp, d_cpi, v_exr, v_inr, d_unr, d_coc, d_pos) |> 
   dplyr::group_by(country) |> 
   dplyr::summarise(
     dplyr::across(dplyr::everything(),
@@ -61,13 +77,13 @@ lac_indicators |>
 
 # preenchendo os NAs
 lac_indicators <- lac_indicators |>
-  fill(gdp, .direction = "up") |> 
-  fill(cpi, .direction = "up") |> 
-  fill(exr, .direction = "up") |> 
-  fill(inr, .direction = "up") |> 
-  fill(unr, .direction = "up") |> 
-  fill(coc, .direction = "up") |> 
-  fill(pos, .direction = "up")
+  fill(d_gdp, .direction = "up") |> 
+  fill(d_cpi, .direction = "up") |> 
+  fill(v_exr, .direction = "up") |> 
+  fill(v_inr, .direction = "up") |> 
+  fill(d_unr, .direction = "up") |> 
+  fill(d_coc, .direction = "up") |> 
+  fill(d_pos, .direction = "up") 
   
 # Adicionando uma caluna de tratamento para os anos após a reforma
 lac_indicators <- lac_indicators |> 
