@@ -79,3 +79,10 @@ raw_data <- raw_data |>
 
 readr::write_csv(raw_data, 
                  file = "data/raw_data_imf.csv")
+
+lac_indicators <- readr::read_csv(file = "data/raw_data_imf.csv") |> 
+  dplyr::rename(country = entity_name) |> 
+  dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)) |> 
+  dplyr::filter(year != 2003)
+
+
