@@ -124,7 +124,7 @@ raw_data_wdi <- raw_data_wdi |>
   )
 
 raw_data_wdi <- raw_data_wdi |> 
-  dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2017, 1, 0)) |> 
+  dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)) |> 
   dplyr::filter(year %in% c(1996:2024))
 
 # Checando NAs por país

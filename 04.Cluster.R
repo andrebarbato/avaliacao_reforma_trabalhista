@@ -25,7 +25,7 @@ if(sum(as.numeric(!pacotes %in% installed.packages())) != 0){
 # violência e terrorismo
 indicators <- c("NY.ADJ.NNTY.PC.KD", "SP.DYN.IMRT.IN", "NE.EXP.GNFS.ZS",
                 "NE.IMP.GNFS.ZS", "SH.XPD.CHEX.GD.ZS", "FR.INR.RINR",
-                "SP.DYN.LE00.IN", "NY.GDP.PCAP.KD")
+                "SP.DYN.LE00.IN", "NY.GDP.PCAP.KD","SL.UEM.TOTL.NE.ZS")
 
 raw_indicators <- WDI::WDI(country = "all", 
                            indicator = indicators) |> 
@@ -47,8 +47,9 @@ countries <- raw_indicators |>
                 health = "SH.XPD.CHEX.GD.ZS",
                 inflation = "FR.INR.RINR",
                 life_expec = "SP.DYN.LE00.IN",
-                gdp = "NY.GDP.PCAP.KD") |> 
-  dplyr:: filter(year %in% c(2014:2024)) |> 
+                gdp = "NY.GDP.PCAP.KD",
+                unr = "SL.UEM.TOTL.NE.ZS") |> 
+  dplyr:: filter(year %in% c(2009:2019)) |> 
   dplyr::group_by(country) |> 
   dplyr::summarise(
     income = mean(income, na.rm = TRUE),
@@ -58,7 +59,8 @@ countries <- raw_indicators |>
     health = mean(health, na.rm = TRUE),
     inflation = mean(inflation, na.rm = TRUE),
     life_expec = mean(life_expec, na.rm = TRUE),
-    gdp = mean(gdp, na.rm = TRUE)
+    gdp = mean(gdp, na.rm = TRUE),
+    unr = mean(unr, na.rm = TRUE)
   ) |> 
   tidyr::drop_na()
 
@@ -72,7 +74,7 @@ summary(countries)
 
 # Padronizando as variáveis
 
-pais_padronizado <- as.data.frame(scale(countries[,2:9]))
+pais_padronizado <- as.data.frame(scale(countries[,2:10]))
 rownames(pais_padronizado) <- countries$country
 
 ## Todas as variáveis passam a ter média = 0 e desvio padrão = 1. Por exemplo:
@@ -87,7 +89,7 @@ round(sd(pais_padronizado$gdp))
 
 # Matriz de dissimilaridades
 matriz_D <- pais_padronizado %>% 
-  dist(method = "euclidean")
+  dist(method = "manhattan")
 
 # 1º Teste: Elaboração da clusterização hierárquica como "single linkage"
 cluster_hier_single <- agnes(x = matriz_D, method = "single")
@@ -117,7 +119,7 @@ fviz_dend(x = cluster_hier_average, show_labels = F)
 
 # Dendrograma com visualização dos clusters (selecionando por "altura")
 fviz_dend(x = cluster_hier_complete,
-          h = 6.5,
+          h = 14,
           color_labels_by_k = F,
           rect = T,
           rect_fill = T,
@@ -182,3 +184,47 @@ análise <- group_by(countries, cluster_H) %>%
 ## Elevada mortalidade infantil, baixa expectativa de vida
 ## Portanto, são os países em que deve haver ajuda para melhoria das condições
 
+
+#---------- Esquema de aglomeração não hierárquico K-MEANS ---------------------
+
+# Elaboração da clusterização não hieráquica k-means
+cluster_kmeans <- kmeans(countries[,2:10],
+                         centers = 4)
+
+# Criando variável categórica para indicação do cluster no banco de dados
+countries$cluster_K <- factor(cluster_kmeans$cluster)
+
+# Método de Elbow para identificação do número ótimo de clusters
+fviz_nbclust(countries[,2:10], kmeans, method = "wss", k.max = 10)
+
+# Visualização da base de dados
+countries %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", 
+                full_width = FALSE,
+                font_size = 20)
+
+# Análise de variância de um fator (ANOVA)
+
+# ANOVA da variável 'atendimento'
+summary(anova_atendimento <- aov(formula = atendimento ~ cluster_K,
+                                 data = RegionalVarejista))
+
+# ANOVA da variável 'sortimento'
+summary(anova_sortimento <- aov(formula = sortimento ~ cluster_K,
+                                data = RegionalVarejista))
+
+# ANOVA da variável 'organização'
+summary(anova_organiza <- aov(formula = organização ~ cluster_K,
+                              data = RegionalVarejista))
+
+# Comparando os resultados dos esquemas hierárquico e não hierárquico
+RegionalVarejista %>%
+  select(regional, cluster_H, cluster_K) %>%
+  arrange(regional) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = "striped",
+                full_width = FALSE,
+                font_size = 20)
+
+# FIM!
