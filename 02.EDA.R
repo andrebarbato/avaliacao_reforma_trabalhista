@@ -39,8 +39,8 @@ ggplot2::ggsave("figs/fig2.png",
                 height = 5.5)
 
 ## Taxa de desemprego do Brasil
-lac_indicators |> 
-  dplyr::filter(country == "Brazil") |> 
+raw_data_wdi |> 
+  dplyr::filter(country == "Trinidad and Tobago") |> 
   dplyr::select(year, unr) |> 
   ggplot2::ggplot(
     aes(x = year, y = unr)

@@ -15,7 +15,7 @@ indicators <- c("NY.GDP.MKTP.KD.ZG", "FP.CPI.TOTL.ZG",
 
 # baixando os indicadores do WDI
 raw_indicators <- WDI::WDI(country = "all", 
-                           indicator = indicators) |> 
+                           indicator = "SL.UEM.TOTL.NE.ZS") |> 
   tidyr::as_tibble() |> 
   dplyr::rename(gdp = "NY.GDP.MKTP.KD.ZG",
                 cpi = "FP.CPI.TOTL.ZG",
@@ -42,7 +42,8 @@ raw_indicators <- readr::read_csv(file = "data/raw_indicators.csv",
 
 selected_countries <- c("Bolivia", "Chile", "Colombia", 
                         "Dominican Republic", "Mexico", "Nicaragua",
-                        "Trinidad and Tobago", "Brazil")
+                        "Trinidad and Tobago", "Brazil", "Bahamas, The",
+                        "St. Lucia", "St. Vincent and the Grenadines", "Guyana")
   
 # filtrando países da américa latina e caribe
 lac_indicators <- raw_indicators |> 
@@ -87,4 +88,52 @@ lac_indicators <- lac_indicators |>
   
 # Adicionando uma caluna de tratamento para os anos após a reforma
 lac_indicators <- lac_indicators |> 
-  dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2018, 1, 0))  
+  dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2017, 1, 0))  
+
+# Como segunda opção foram baixados os dados diretamente do site do WDI --------
+# https://databank.worldbank.org/source/world-development-indicators
+
+raw_data_wdi <- readr::read_csv(
+  file = "data/dcd7f9c0-5951-4573-8e52-97f6a3374f72_Data.csv"
+)
+
+raw_data_wdi <- raw_data_wdi[1:207480,]
+
+raw_data_wdi <- raw_data_wdi |> 
+  dplyr::filter(`Country Name` %in% selected_countries) |> 
+  dplyr::select(-c(`Country Code`, `Series Code`,`Time Code`)) |> 
+  tidyr::pivot_wider(
+    names_from = `Series Name`,
+    values_from = Value
+  ) |> 
+  dplyr::rename(
+    country = `Country Name`,
+    year = Time,
+    unr = `Unemployment, total (% of total labor force) (modeled ILO estimate)`,
+    unr_f = `Unemployment, female (% of female labor force) (modeled ILO estimate)`,
+    unr_m = `Unemployment, male (% of male labor force) (modeled ILO estimate)`,
+    gdp = `GDP growth (annual %)`,
+    cpi = `Inflation, consumer prices (annual %)`,
+    exr = `Official exchange rate (LCU per US$, period average)`,
+    exr_ref = `Real effective exchange rate index (2010 = 100)`,
+    inr = `Real interest rate (%)`,
+    upop = `Urban population growth (annual %)`,
+    upop_p = `Urban population (% of total population)`,
+    pos = `Political Stability and Absence of Violence/Terrorism: Estimate`,
+    coc = `Control of Corruption: Estimate`
+  )
+
+raw_data_wdi <- raw_data_wdi |> 
+  dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2017, 1, 0)) |> 
+  dplyr::filter(year %in% c(1996:2024))
+
+# Checando NAs por país
+raw_data_wdi |>
+  dplyr::select(country, gdp, cpi, exr, inr, unr, coc, pos) |> 
+  dplyr::group_by(country) |> 
+  dplyr::summarise(
+    dplyr::across(dplyr::everything(),
+                  ~sum(is.na(.)))
+  )
+
+# fazer tratamento das variáveis NAs e rodar para as covariáveis
