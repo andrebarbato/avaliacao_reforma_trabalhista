@@ -20,32 +20,35 @@
 #   dim = c(N0,T0,C0)
 #   )
 
+data_sdid_clean <- data_sdid_clean |> 
+  filter(year %in% c(2003:2020))
+
 # Set seed for reproducibility
 set.seed(12345)
 
 # Ajustando a variável dependente Taxa de Desemprego para as variáveis independentes
 # ou time-varying covariates
-lac_indicators$adj.unr <- xsynthdid::adjust.outcome.for.x(
-  lac_indicators,
+data_sdid_clean$adj.unr <- xsynthdid::adjust.outcome.for.x(
+  data_sdid_clean,
   unit="country",
   time = "year",
-  outcome = "d_unr",
+  outcome = "unr",
   treatment = "treat", 
-  x=c("d_gdp", "d_cpi", "v_exr", "v_inr", "d_coc", "d_pos"))
+  x=c("gdp", "cpi", "exr_ref", "inr", "coc", "pos", "upop"))
 
 # Prepara a matriz pm considerando a variável independente ajustada
-setup = synthdid::panel.matrices(as.data.frame(raw_data_wdi),
+setup <- synthdid::panel.matrices(as.data.frame(data_sdid_clean),
                                  unit = "country",
                                  time = "year",
-                                 outcome = "unr",
+                                 outcome = "adj.unr",
                                  treatment = "treat")
 
 # Estimate treatment effect using SynthDiD
-tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0)
+tau.hat <- synthdid_estimate(setup$Y, setup$N0, setup$T0)
 print(summary(tau.hat))
 
 # Calculate standard errors 
-se = sqrt(vcov(tau.hat, method='placebo'))
+se <- sqrt(vcov(tau.hat, method='placebo'))
 te_est <- sprintf('Point estimate for the treatment effect: %1.2f', tau.hat)
 CI <- sprintf('95%% CI (%1.2f, %1.2f)', tau.hat - 1.96 * se, tau.hat + 1.96 * se)
 
@@ -70,18 +73,22 @@ plot(tau.hat, overlay=.8, se.method='placebo')
 ggsave('../figures/results_simple.png')
 
 # Create spaghetti plot with top 10 control units
-top.controls = synthdid_controls(tau.hat)
+top.controls <- synthdid_controls(tau.hat)
 plot(tau.hat, spaghetti.units=rownames(top.controls))
 ggsave('../figures/results.png')
 
-fe <- feols(d_unr~treat, lac_indicators, cluster = 'country', panel.id = 'country', 
+fe <- feols(adj.unr~treat, 
+            data_sdid_clean, 
+            cluster = 'country', 
+            panel.id = 'country', 
             fixef = c('country', 'year'))
+
 summary(fe)
 summary(tau.hat)
 
-tau.sc   = sc_estimate(setup$Y, setup$N0, setup$T0)
-tau.did  = did_estimate(setup$Y, setup$N0, setup$T0)
-estimates = list(tau.did, tau.sc, tau.hat)
+tau.sc <- sc_estimate(setup$Y, setup$N0, setup$T0)
+tau.did <- did_estimate(setup$Y, setup$N0, setup$T0)
+estimates <- list(tau.did, tau.sc, tau.hat)
 names(estimates) = c('Diff-in-Diff', 'Synthetic Control', 'Synthetic Diff-in-Diff')
 
 print(unlist(estimates))

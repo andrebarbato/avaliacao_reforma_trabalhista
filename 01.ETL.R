@@ -93,14 +93,63 @@ lac_indicators <- lac_indicators |>
 # Como segunda opção foram baixados os dados diretamente do site do WDI --------
 # https://databank.worldbank.org/source/world-development-indicators
 
+# carregando os dados baixados do WDI
 raw_data_wdi <- readr::read_csv(
   file = "data/c0acf3f2-dc67-4a86-86c4-66b97f34d58f_Data.csv"
 )
 
 raw_data_wdi <- raw_data_wdi[1:224770,]
 
-raw_data_wdi <- raw_data_wdi |> 
-  dplyr::filter(`Country Name` %in% selected_countries) |> 
+lit_selected_countries <- c("Bolivia", "Chile", "Colombia",
+                            "Dominican Republic", "Mexico", "Nicaragua",
+                            "Trinidad and Tobago", "Brazil", "Bahamas, The",
+                            "St. Lucia", "St. Vincent and the Grenadines", 
+                            "Guyana")
+
+# carregando os dados baixados do ILO
+raw_data_ilo_informality <- readr::read_csv(
+  file = "data/EMP_NIFL_SEX_RT_A-20251121T2048.csv"
+)
+
+raw_data_ilo_earnings <- readr::read_csv(
+  file = "data/EAR_4MTH_SEX_CUR_NB_A-20251122T0306.csv"
+)
+
+# formatando as bases do ILO para depois combinar com os dados do WDI
+informality <- raw_data_ilo_informality |> 
+  dplyr::filter(sex.label != "Other") |> 
+  dplyr::mutate(
+    `Series Name` = paste0(indicator.label, ": ", sex.label)
+  ) |> 
+  dplyr::rename(
+    `Country Name` = ref_area.label,
+    Time = time,
+    Value = obs_value
+  ) |> 
+  dplyr::select(c(`Country Name`, `Series Name`, Time, Value))
+
+earnings <- raw_data_ilo_earnings |>
+  dplyr::filter( classif1.label == "Currency: 2021 PPP $",
+                 sex.label != "Other") |> 
+  dplyr::mutate(
+    `Series Name` = paste0(indicator.label, ": ", sex.label)
+  ) |> 
+  dplyr::rename(
+    `Country Name` = ref_area.label,
+    Time = time,
+    Value = obs_value
+  ) |> 
+  dplyr::select(c(`Country Name`, `Series Name`, Time, Value))
+
+# combinando as bases do ILO
+data_ilo <- dplyr::bind_rows(earnings, informality)
+
+# Combinando bases WDI e ILO
+data_sdid <- dplyr::bind_rows(data_ilo, raw_data_wdi)
+
+# tratamento dos dados combinados
+data_sdid <- data_sdid |> 
+  dplyr::filter(`Country Name` %in% lit_selected_countries) |> 
   dplyr::select(-c(`Country Code`, `Series Code`,`Time Code`)) |> 
   tidyr::pivot_wider(
     names_from = `Series Name`,
@@ -121,32 +170,71 @@ raw_data_wdi <- raw_data_wdi |>
     upop_p = `Urban population (% of total population)`,
     pos = `Political Stability and Absence of Violence/Terrorism: Estimate`,
     coc = `Control of Corruption: Estimate`,
-    gini = `Gini index`
-  )
+    gini = `Gini index`,
+    earn_t = `Average monthly earnings of employees by sex: Total`,
+    earn_m = `Average monthly earnings of employees by sex: Male`,
+    earn_f = `Average monthly earnings of employees by sex: Female`,
+    iel_t = `Informal employment rate by sex (%): Total`,
+    iel_m = `Informal employment rate by sex (%): Male`,
+    iel_f = `Informal employment rate by sex (%): Female`
+    ) |> 
+  dplyr::arrange(country,year)
 
-raw_data_wdi <- raw_data_wdi |> 
+data_sdid <- data_sdid |> 
   dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)) |> 
   dplyr::filter(year %in% c(1996:2024))
 
 # Checando NAs por país
-raw_data_wdi |>
-  dplyr::select(country, gdp, cpi, exr, inr, unr, coc, pos) |> 
+data_sdid |>
+  dplyr::select(country, unr, unr_f, unr_m, gini,
+                gdp, cpi, exr, exr_ref, inr, upop, upop_p,
+                coc, pos) |> 
   dplyr::group_by(country) |> 
   dplyr::summarise(
     dplyr::across(dplyr::everything(),
                   ~sum(is.na(.)))
   )
 
-# fazer tratamento das variáveis NAs e rodar para as covariáveis
+# Tratamento das variáveis NAs
+# Preenchendo NAs por interpolação
+data_sdid_clean <- data_sdid |> 
+  group_by(country) |> 
+  mutate(
+    across(everything(),
+           ~na.approx(.x, na.rm = FALSE, maxgap = 3))
+  )
 
-# Baixando dados do ILO Stats -------------------------------------------------
 
-toc <- Rilostat::get_ilostat_toc(quiet = TRUE)
+# Preencher NAs para baixo e para cima
+data_sdid_clean <- data_sdid_clean |> 
+  group_by(country) |> 
+  fill(earn_t, .direction = "downup") |>
+  fill(earn_m, .direction = "downup") |>
+  fill(earn_f, .direction = "downup") |>
+  fill(iel_t, .direction = "downup") |>
+  fill(iel_m, .direction = "downup") |>
+  fill(iel_f, .direction = "downup") |>
+  fill(unr , .direction = "downup") |>
+  fill(unr_f , .direction = "downup") |> 
+  fill(unr_m , .direction = "downup") |> 
+  fill(gdp , .direction = "downup") |> 
+  fill(cpi, .direction = "downup") |> 
+  fill(exr, .direction = "downup") |> 
+  fill(exr_ref, .direction = "downup") |> 
+  fill(inr, .direction = "downup") |> 
+  fill(upop, .direction = "downup") |> 
+  fill(upop_p, .direction = "downup") |> 
+  fill(coc, .direction = "downup") |> 
+  fill(pos, .direction = "downup") |> 
+  fill(gini, .direction = "downup")
 
-dat <- get_ilostat(id = 'EAR_4MTH_SEX_CUR_NB_A', 
-                   segment = 'indicator') 
+data_sdid_clean |>
+  # dplyr::select(country, unr, unr_f, unr_m, gini,
+  #               gdp, cpi, exr, exr_ref, inr, upop, upop_p,
+  #               coc, pos) |> 
+  dplyr::group_by(country) |> 
+  dplyr::summarise(
+    dplyr::across(dplyr::everything(),
+                  ~sum(is.na(.)))
+  )
 
-dat |> filter(ref_area == "BRA",
-              sex == "SEX_T") |> 
-  ggplot(aes(x = time, y = obs_value, group = 1)) +
-  geom_line()
