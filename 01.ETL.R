@@ -94,10 +94,10 @@ lac_indicators <- lac_indicators |>
 # https://databank.worldbank.org/source/world-development-indicators
 
 raw_data_wdi <- readr::read_csv(
-  file = "data/dcd7f9c0-5951-4573-8e52-97f6a3374f72_Data.csv"
+  file = "data/c0acf3f2-dc67-4a86-86c4-66b97f34d58f_Data.csv"
 )
 
-raw_data_wdi <- raw_data_wdi[1:207480,]
+raw_data_wdi <- raw_data_wdi[1:224770,]
 
 raw_data_wdi <- raw_data_wdi |> 
   dplyr::filter(`Country Name` %in% selected_countries) |> 
@@ -120,7 +120,8 @@ raw_data_wdi <- raw_data_wdi |>
     upop = `Urban population growth (annual %)`,
     upop_p = `Urban population (% of total population)`,
     pos = `Political Stability and Absence of Violence/Terrorism: Estimate`,
-    coc = `Control of Corruption: Estimate`
+    coc = `Control of Corruption: Estimate`,
+    gini = `Gini index`
   )
 
 raw_data_wdi <- raw_data_wdi |> 
@@ -137,3 +138,15 @@ raw_data_wdi |>
   )
 
 # fazer tratamento das variáveis NAs e rodar para as covariáveis
+
+# Baixando dados do ILO Stats -------------------------------------------------
+
+toc <- Rilostat::get_ilostat_toc(quiet = TRUE)
+
+dat <- get_ilostat(id = 'EAR_4MTH_SEX_CUR_NB_A', 
+                   segment = 'indicator') 
+
+dat |> filter(ref_area == "BRA",
+              sex == "SEX_T") |> 
+  ggplot(aes(x = time, y = obs_value, group = 1)) +
+  geom_line()
