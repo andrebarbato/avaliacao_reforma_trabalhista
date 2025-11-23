@@ -1,4 +1,39 @@
-# Reproduzindo a Figura 1 do artigo base: 
+library(wesanderson)
+
+my_palette <- wesanderson::wes_palette("Darjeeling1", n = 12, type = "continuous")
+
+# Séries de taxa de desemprego
+f1 <- data_sdid |>
+  #filter(country == "Brazil") |> 
+  mutate(isBrazil = (country == "Brazil")) |> 
+  ggplot2::ggplot(aes(x = year, y = unr, color = country)) +
+  ggplot2::geom_line(aes(linetype = isBrazil), size = 0.75, alpha = 0.7) +
+  ggplot2::labs(
+    x = "Ano",
+    y = "Taxa de desemprego (estimativa OIT)",
+    color = ""
+  ) +
+  ggthemes::theme_fivethirtyeight() +
+  ggplot2::theme(axis.title = element_text(),
+                 plot.background = element_blank(),
+                 panel.background = element_blank(),
+                 legend.background = element_blank(),
+                 panel.grid.major = element_line(color = "lightgray", 
+                                                 size = 0.05),
+                 panel.grid.minor = element_line(color = "lightgray", 
+                                                 size = 0.05)) +
+  ggplot2::scale_linetype_manual(values = c("dashed", "solid"), 
+                                 guide = "none") + 
+  ggplot2::scale_color_manual(values = my_palette)
+
+ggplot2::ggsave(
+  "figs/f1.png",
+  f1,
+  width = 8.5,
+  height = 5.5
+)
+
+# Reproduzindo a Figura 1 do artigo # Reproduzindo a Figura 1 do artigo # Reproduzindo a Figura 1 do artigo # Reproduzindo a Figura 1 do artigo # Reproduzindo a Figura 1 do artigo base: 
 # Evolução do indicador de controle de corrupção para o Brasil
 
 fig1 <- lac_indicators |> 

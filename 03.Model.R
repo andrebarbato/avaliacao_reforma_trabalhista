@@ -40,7 +40,7 @@ data_sdid_clean$adj.unr <- xsynthdid::adjust.outcome.for.x(
 setup <- synthdid::panel.matrices(as.data.frame(data_sdid_clean),
                                  unit = "country",
                                  time = "year",
-                                 outcome = "adj.unr",
+                                 outcome = "unr",
                                  treatment = "treat")
 
 # Estimate treatment effect using SynthDiD
@@ -53,7 +53,13 @@ te_est <- sprintf('Point estimate for the treatment effect: %1.2f', tau.hat)
 CI <- sprintf('95%% CI (%1.2f, %1.2f)', tau.hat - 1.96 * se, tau.hat + 1.96 * se)
 
 # Plot treatment effect estimates
-plot(tau.hat) -> graf1
+plot(tau.hat,
+     trajectory.linetype = 1, 
+     line.width=.75,
+     trajectory.alpha=.9,
+     effect.alpha=.9,
+     diagram.alpha=2, onset.alpha=.4, ci.alpha = .3)
+
 plot(tau.hat, se.method='placebo')
 
 ggplot2::ggsave("figs/graf1.png",

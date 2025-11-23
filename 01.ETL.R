@@ -178,7 +178,7 @@ data_sdid <- data_sdid |>
     iel_m = `Informal employment rate by sex (%): Male`,
     iel_f = `Informal employment rate by sex (%): Female`
     ) |> 
-  dplyr::arrange(country,year)
+  dplyr::arrange(year,country)
 
 data_sdid <- data_sdid |> 
   dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)) |> 
@@ -195,6 +195,13 @@ data_sdid |>
                   ~sum(is.na(.)))
   )
 
+# Fazendo filtro para reduzir tratamento por NA
+data_sdid <- data_sdid |> 
+  filter(country %in% c("Chile", "Colombia",
+                      "Dominican Republic", "Mexico",
+                      "Trinidad and Tobago", "Brazil",
+                      "St. Lucia", "St. Vincent and the Grenadines"))
+
 # Tratamento das variáveis NAs
 # Preenchendo NAs por interpolação
 data_sdid_clean <- data_sdid |> 
@@ -202,6 +209,16 @@ data_sdid_clean <- data_sdid |>
   mutate(
     across(everything(),
            ~na.approx(.x, na.rm = FALSE, maxgap = 3))
+  )
+
+data_sdid_clean |>
+  dplyr::select(country, unr, unr_f, unr_m, gini,
+                gdp, cpi, exr, exr_ref, inr, upop, upop_p,
+                coc, pos) |> 
+  dplyr::group_by(country) |> 
+  dplyr::summarise(
+    dplyr::across(dplyr::everything(),
+                  ~sum(is.na(.)))
   )
 
 
