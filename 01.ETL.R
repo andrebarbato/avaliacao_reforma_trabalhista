@@ -95,10 +95,10 @@ lac_indicators <- lac_indicators |>
 
 # carregando os dados baixados do WDI
 raw_data_wdi <- readr::read_csv(
-  file = "data/c0acf3f2-dc67-4a86-86c4-66b97f34d58f_Data.csv"
+  file = "data/de931949-cc48-4fe6-a575-a512803713f8_Data.csv"
 )
 
-raw_data_wdi <- raw_data_wdi[1:224770,]
+raw_data_wdi <- raw_data_wdi[1:293930,]
 
 lit_selected_countries <- c("Bolivia", "Chile", "Colombia",
                             "Dominican Republic", "Mexico", "Nicaragua",
@@ -162,12 +162,13 @@ data_sdid <- data_sdid |>
     unr_f = `Unemployment, female (% of female labor force) (modeled ILO estimate)`,
     unr_m = `Unemployment, male (% of male labor force) (modeled ILO estimate)`,
     gdp = `GDP growth (annual %)`,
+    gdppc = `GDP per capita growth (annual %)`,
     cpi = `Inflation, consumer prices (annual %)`,
+    inf_d = `Inflation, GDP deflator (annual %)`,
     exr = `Official exchange rate (LCU per US$, period average)`,
     exr_ref = `Real effective exchange rate index (2010 = 100)`,
     inr = `Real interest rate (%)`,
     upop = `Urban population growth (annual %)`,
-    upop_p = `Urban population (% of total population)`,
     pos = `Political Stability and Absence of Violence/Terrorism: Estimate`,
     coc = `Control of Corruption: Estimate`,
     gini = `Gini index`,
@@ -176,31 +177,12 @@ data_sdid <- data_sdid |>
     earn_f = `Average monthly earnings of employees by sex: Female`,
     iel_t = `Informal employment rate by sex (%): Total`,
     iel_m = `Informal employment rate by sex (%): Male`,
-    iel_f = `Informal employment rate by sex (%): Female`
+    iel_f = `Informal employment rate by sex (%): Female`,
+    subt = `Subsidies and other transfers (% of expense)`,
+    labf = `Labor force participation rate, total (% of total population ages 15+) (modeled ILO estimate)`,
+    exped = `Government expenditure on education, total (% of GDP)`
     ) |> 
   dplyr::arrange(year,country)
-
-data_sdid <- data_sdid |> 
-  dplyr::mutate(treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)) |> 
-  dplyr::filter(year %in% c(1996:2024))
-
-# Checando NAs por país
-data_sdid |>
-  dplyr::select(country, unr, unr_f, unr_m, gini,
-                gdp, cpi, exr, exr_ref, inr, upop, upop_p,
-                coc, pos) |> 
-  dplyr::group_by(country) |> 
-  dplyr::summarise(
-    dplyr::across(dplyr::everything(),
-                  ~sum(is.na(.)))
-  )
-
-# Fazendo filtro para reduzir tratamento por NA
-data_sdid <- data_sdid |> 
-  filter(country %in% c("Chile", "Colombia",
-                      "Dominican Republic", "Mexico",
-                      "Trinidad and Tobago", "Brazil",
-                      "St. Lucia", "St. Vincent and the Grenadines"))
 
 # Tratamento das variáveis NAs
 # Preenchendo NAs por interpolação
@@ -208,43 +190,10 @@ data_sdid_clean <- data_sdid |>
   group_by(country) |> 
   mutate(
     across(everything(),
-           ~na.approx(.x, na.rm = FALSE, maxgap = 3))
+           ~na.approx(.x, na.rm = FALSE, maxgap = 2))
   )
 
-data_sdid_clean |>
-  dplyr::select(country, unr, unr_f, unr_m, gini,
-                gdp, cpi, exr, exr_ref, inr, upop, upop_p,
-                coc, pos) |> 
-  dplyr::group_by(country) |> 
-  dplyr::summarise(
-    dplyr::across(dplyr::everything(),
-                  ~sum(is.na(.)))
-  )
-
-
-# Preencher NAs para baixo e para cima
-data_sdid_clean <- data_sdid_clean |> 
-  group_by(country) |> 
-  fill(earn_t, .direction = "downup") |>
-  fill(earn_m, .direction = "downup") |>
-  fill(earn_f, .direction = "downup") |>
-  fill(iel_t, .direction = "downup") |>
-  fill(iel_m, .direction = "downup") |>
-  fill(iel_f, .direction = "downup") |>
-  fill(unr , .direction = "downup") |>
-  fill(unr_f , .direction = "downup") |> 
-  fill(unr_m , .direction = "downup") |> 
-  fill(gdp , .direction = "downup") |> 
-  fill(cpi, .direction = "downup") |> 
-  fill(exr, .direction = "downup") |> 
-  fill(exr_ref, .direction = "downup") |> 
-  fill(inr, .direction = "downup") |> 
-  fill(upop, .direction = "downup") |> 
-  fill(upop_p, .direction = "downup") |> 
-  fill(coc, .direction = "downup") |> 
-  fill(pos, .direction = "downup") |> 
-  fill(gini, .direction = "downup")
-
+# Checando NAs por país
 data_sdid_clean |>
   # dplyr::select(country, unr, unr_f, unr_m, gini,
   #               gdp, cpi, exr, exr_ref, inr, upop, upop_p,
@@ -253,5 +202,45 @@ data_sdid_clean |>
   dplyr::summarise(
     dplyr::across(dplyr::everything(),
                   ~sum(is.na(.)))
+  ) -> NACount
+
+
+
+data_sdid_clean <- data_sdid_clean |>
+  dplyr::group_by(country) |> 
+  dplyr::mutate(
+    d_unr = unr - lag(unr),
+    d_gdp = gdp - lag(gdp),
+    d_inf_d = inf_d - lag(inf_d),
+    v_exr = exr_ref / lag(exr_ref) - 1,
+    v_inr = inr /lag(inr) - 1,
+    d_coc = coc - lag(coc),
+    d_pos = pos - lag(pos),
+    d_gdppc = gdppc - lag(gdppc),
+    v_upop = upop / lag(upop) -1,
+    v_labf = labf / lag(labf) -1,
+    treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)
+  ) |> 
+  dplyr::filter(year %in% c(2003:2023),
+                !(country %in% c("Chile", "St. Lucia", 
+                                 "St. Vincent and the Grenadines")))
+
+# Tratamento das variáveis NAs
+# Preenchendo NAs por interpolação
+data_sdid_clean <- data_sdid_clean |> 
+  group_by(country) |> 
+  mutate(
+    across(everything(),
+           ~na.approx(.x, na.rm = FALSE, maxgap = 2))
   )
 
+# Checando NAs por país
+data_sdid_clean |>
+  # dplyr::select(country, unr, unr_f, unr_m, gini,
+  #               gdp, cpi, exr, exr_ref, inr, upop, upop_p,
+  #               coc, pos) |> 
+  dplyr::group_by(country) |> 
+  dplyr::summarise(
+    dplyr::across(dplyr::everything(),
+                  ~sum(is.na(.)))
+  ) -> NACount

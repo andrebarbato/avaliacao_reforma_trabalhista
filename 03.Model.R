@@ -1,28 +1,5 @@
 # Estimando o modelo SDID
 
-# # criando a matriz 3D de covaráveis
-# T0 <- lac_indicators$year |> unique() |> length()
-# N0 <- lac_indicators$country |> unique() |> length()
-# 
-# 
-# l_lac_indicators <- lac_indicators |>
-#   dplyr::select(country, year, d_gdp, d_cpi, v_exr, v_inr, d_coc, d_pos) |> 
-#   tidyr::pivot_longer(
-#     !c(country,year),
-#     names_to = "covariate",
-#     values_to = "value"
-#   ) |>
-#   dplyr::arrange(covariate, year)
-# 
-# C0 <- l_lac_indicators$covariate |> unique() |> length()
-# 
-# a <- array(l_lac_indicators$value,
-#   dim = c(N0,T0,C0)
-#   )
-
-data_sdid_clean <- data_sdid_clean |> 
-  filter(year %in% c(2003:2020))
-
 # Set seed for reproducibility
 set.seed(12345)
 
@@ -34,13 +11,13 @@ data_sdid_clean$adj.unr <- xsynthdid::adjust.outcome.for.x(
   time = "year",
   outcome = "unr",
   treatment = "treat", 
-  x=c("gdp", "cpi", "exr_ref", "inr", "coc", "pos", "upop"))
+  x=c("gdp", "inf_d", "v_exr", "inr", "coc", "pos"))
 
 # Prepara a matriz pm considerando a variável independente ajustada
 setup <- synthdid::panel.matrices(as.data.frame(data_sdid_clean),
                                  unit = "country",
                                  time = "year",
-                                 outcome = "unr",
+                                 outcome = "d_unr",
                                  treatment = "treat")
 
 # Estimate treatment effect using SynthDiD
@@ -58,7 +35,16 @@ plot(tau.hat,
      line.width=.75,
      trajectory.alpha=.9,
      effect.alpha=.9,
-     diagram.alpha=2, onset.alpha=.4, ci.alpha = .3)
+     diagram.alpha=2, onset.alpha=.4, ci.alpha = .3) +
+  ggthemes::theme_fivethirtyeight() +
+  ggplot2::theme(axis.title = element_text(),
+                 plot.background = element_rect(fill = "white"),
+                 panel.background = element_rect(fill = "white"),
+                 legend.background = element_rect(fill = "white"),
+                 panel.grid.major = element_line(color = "lightgray", 
+                                                 size = 0.05),
+                 panel.grid.minor = element_line(color = "lightgray", 
+                                                 size = 0.05))
 
 plot(tau.hat, se.method='placebo')
 
