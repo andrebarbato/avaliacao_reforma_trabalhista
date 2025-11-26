@@ -11,7 +11,7 @@ sdid_run <- function(df,
   
   # Garantindo a reproducibilidade
   set.seed(123)
-  message(paste0("Calculando 1/13...", round(1/13*100, 2), "%"))
+  message(paste0("Calculando 1/14...", round(1/13*100, 2), "%"))
   
   # Limpando o efeito das variáveis independentes (X) da variável dependente (Y)
   df$adj.y <- xsynthdid::adjust.outcome.for.x(
@@ -21,7 +21,7 @@ sdid_run <- function(df,
     outcome = outcome,
     treatment = treat, 
     x= covariates)
-  message(paste0("Calculando 2/13...", round(2/13*100, 2), "%"))
+  message(paste0("Calculando 2/14...", round(2/13*100, 2), "%"))
   
   # Prepara a matriz pm considerando a variável independente ajustada
   pm <- synthdid::panel.matrices(as.data.frame(df),
@@ -29,17 +29,17 @@ sdid_run <- function(df,
                                  time = time,
                                  outcome = "adj.y",
                                  treatment = treat)
-  message(paste0("Calculando 3/13...", round(3/13*100, 2), "%"))
+  message(paste0("Calculando 3/14...", round(3/13*100, 2), "%"))
   
   # Estimate treatment effect using SynthDiD
   tau.hat <- synthdid_estimate(pm$Y, pm$N0, pm$T0)
-  message(paste0("Calculando 4/13...", round(4/13*100, 2), "%"))
+  message(paste0("Calculando 4/14...", round(4/13*100, 2), "%"))
   
   # Calculate standard errors 
   se <- sqrt(vcov(tau.hat, method='placebo'))
   te_est <- sprintf('Point estimate for the treatment effect: %1.2f', tau.hat)
   CI <- sprintf('95%% CI (%1.2f, %1.2f)', tau.hat - 1.96 * se, tau.hat + 1.96 * se)
-  message(paste0("Calculando 5/13...", round(5/13*100, 2), "%"))
+  message(paste0("Calculando 5/14...", round(5/13*100, 2), "%"))
   
   # Plot treatment effect estimates
   plot_treat_effect <- synthdid::synthdid_plot(
@@ -58,7 +58,7 @@ sdid_run <- function(df,
     ggplot2::theme(
       legend.position = "bottom"  # Muda a posição da legenda para baixo
     )
-  message(paste0("Calculando 6/13...", round(6/13*100, 2), "%"))
+  message(paste0("Calculando 6/14...", round(6/13*100, 2), "%"))
   
   # Plot control unit contributions
   control_unit_cont <- synthdid_units_plot(
@@ -71,7 +71,7 @@ sdid_run <- function(df,
     ggplot2::theme(
       axis.text.x = element_text(angle = 90, hjust = 1)  # Rotação dos rótulos do eixo x
     )
-  message(paste0("Calculando 7/13...", round(7/13*100, 2), "%"))
+  message(paste0("Calculando 7/14...", round(7/13*100, 2), "%"))
   
   # Create spaghetti plot with top 10 control units
   top.controls <- synthdid_controls(tau.hat)
@@ -96,7 +96,7 @@ sdid_run <- function(df,
     ggplot2::theme(
       legend.position = "bottom"  # Muda a posição da legenda para baixo
     )
-  message(paste0("Calculando 8/13...", round(8/13*100, 2), "%"))
+  message(paste0("Calculando 8/14...", round(8/13*100, 2), "%"))
   
   # calculando os efeitos fixos
   fe <- feols(adj.y ~ treat, 
@@ -104,14 +104,14 @@ sdid_run <- function(df,
               cluster = unit, 
               panel.id = unit, 
               fixef = c(unit, time))
-  message(paste0("Calculando 9/13...", round(9/13*100, 2), "%"))
+  message(paste0("Calculando 9/14...", round(9/13*100, 2), "%"))
   
   # Calculando os estimadores de DID e SC e comparando 
   tau.sc <- sc_estimate(pm$Y, pm$N0, pm$T0)
   tau.did <- did_estimate(pm$Y, pm$N0, pm$T0)
   estimates <- list(tau.did, tau.sc, tau.hat)
   names(estimates) = c('Diff-in-Diff', 'Synthetic Control', 'Synthetic Diff-in-Diff')
-  message(paste0("Calculando 10/13...", round(10/13*100, 2), "%"))
+  message(paste0("Calculando 10/14...", round(10/13*100, 2), "%"))
   
   # gráfico comparando os estimadores de DID, SC e SDID
   comp_plot <- synthdid_plot(
@@ -131,13 +131,17 @@ sdid_run <- function(df,
       legend.position = "bottom"  # Muda a posição da legenda para baixo
     )
   
-  message(paste0("Calculando 11/13...", round(11/13*100, 2), "%"))
+  message(paste0("Calculando 11/14...", round(11/13*100, 2), "%"))
   
   # Gráfico comparando os pesos dos controles e o erro padrão dos estimadores
   comp_se_unit_plot <- synthdid_units_plot(
     estimates, 
     se.method='placebo')
-  message(paste0("Calculando 12/13...", round(12/13*100, 2), "%"))
+  message(paste0("Calculando 12/14...", round(12/13*100, 2), "%"))
+  
+  # Tabela de pesos do controle sintético
+  tab_control_weights <- synthdid::synthdid_controls(tau.hat)
+  message(paste0("Calculando 13/14...", round(12/13*100, 2), "%"))
   
   # lista de resultados
   outputSDID <- list(tau.hat, 
@@ -150,7 +154,8 @@ sdid_run <- function(df,
                      fe,
                      estimates,
                      comp_plot,
-                     comp_se_unit_plot)
+                     comp_se_unit_plot,
+                     tab_control_weights)
   message(paste0("Calculando 13/13...", round(13/13*100, 2), "%"))
   t_end <- Sys.time()
   
