@@ -186,28 +186,39 @@ data_sdid <- data_sdid |>
 
 # Tratamento das variáveis NAs
 # Preenchendo NAs por interpolação
-data_sdid_clean <- data_sdid |> 
+data_sdid_tratado <- data_sdid |> 
   group_by(country) |> 
   mutate(
     across(everything(),
            ~na.approx(.x, na.rm = FALSE, maxgap = 2))
+  ) |> ungroup()
+
+# preenchendo os demais NAs com a média
+data_sdid_tratado <- data_sdid_tratado |> 
+  group_by(country) |> 
+  mutate(
+    across(dplyr::everything(),
+           ~replace_na(.x, mean(.x, na.rm = TRUE))
+    )
   )
 
-# Checando NAs por país
-data_sdid_clean |>
-  # dplyr::select(country, unr, unr_f, unr_m, gini,
-  #               gdp, cpi, exr, exr_ref, inr, upop, upop_p,
-  #               coc, pos) |> 
-  dplyr::group_by(country) |> 
-  dplyr::summarise(
-    dplyr::across(dplyr::everything(),
-                  ~sum(is.na(.)))
-  ) -> NACount
 
+# Salvando os dados
+save(
+  data_sdid_tratado,
+  file = "data/dados.RData"
+)
 
+# Carregando os dados
+load(
+  file = "data/dados.RData"
+)
 
-data_sdid_clean <- data_sdid_clean |>
-  dplyr::group_by(country) |> 
+# preparando para o modelo
+data_model <- data_sdid_tratado |>
+  dplyr::select(-c("earn_t", "earn_m", "earn_f", "iel_t", "iel_m", "iel_f",
+                   "cpi", "exr", "gini", "subt", "exped")) |>
+  dplyr::group_by(country) |>
   dplyr::mutate(
     d_unr = unr - lag(unr),
     d_gdp = gdp - lag(gdp),
@@ -221,26 +232,7 @@ data_sdid_clean <- data_sdid_clean |>
     v_labf = labf / lag(labf) -1,
     treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)
   ) |> 
-  dplyr::filter(year %in% c(2003:2023),
-                !(country %in% c("Chile", "St. Lucia", 
-                                 "St. Vincent and the Grenadines")))
+  dplyr::ungroup() |> 
+  dplyr::filter(year %in% c(1996:2024))
 
-# Tratamento das variáveis NAs
-# Preenchendo NAs por interpolação
-data_sdid_clean <- data_sdid_clean |> 
-  group_by(country) |> 
-  mutate(
-    across(everything(),
-           ~na.approx(.x, na.rm = FALSE, maxgap = 2))
-  )
-
-# Checando NAs por país
-data_sdid_clean |>
-  # dplyr::select(country, unr, unr_f, unr_m, gini,
-  #               gdp, cpi, exr, exr_ref, inr, upop, upop_p,
-  #               coc, pos) |> 
-  dplyr::group_by(country) |> 
-  dplyr::summarise(
-    dplyr::across(dplyr::everything(),
-                  ~sum(is.na(.)))
-  ) -> NACount
+summary(data_model)

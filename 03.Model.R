@@ -5,8 +5,8 @@ set.seed(12345)
 
 # Ajustando a variável dependente Taxa de Desemprego para as variáveis independentes
 # ou time-varying covariates
-data_sdid_clean$adj.unr <- xsynthdid::adjust.outcome.for.x(
-  data_sdid_clean,
+data_model$adj.unr <- xsynthdid::adjust.outcome.for.x(
+  data_model,
   unit="country",
   time = "year",
   outcome = "unr",
@@ -14,10 +14,10 @@ data_sdid_clean$adj.unr <- xsynthdid::adjust.outcome.for.x(
   x=c("gdp", "inf_d", "v_exr", "inr", "coc", "pos"))
 
 # Prepara a matriz pm considerando a variável independente ajustada
-setup <- synthdid::panel.matrices(as.data.frame(data_sdid_clean),
+setup <- synthdid::panel.matrices(as.data.frame(data_model),
                                  unit = "country",
                                  time = "year",
-                                 outcome = "d_unr",
+                                 outcome = "adj.unr",
                                  treatment = "treat")
 
 # Estimate treatment effect using SynthDiD
@@ -25,7 +25,7 @@ tau.hat <- synthdid_estimate(setup$Y, setup$N0, setup$T0)
 print(summary(tau.hat))
 
 # Calculate standard errors 
-se <- sqrt(vcov(tau.hat, method='placebo'))
+se <- sqrt(vcov(-1.03, method='placebo'))
 te_est <- sprintf('Point estimate for the treatment effect: %1.2f', tau.hat)
 CI <- sprintf('95%% CI (%1.2f, %1.2f)', tau.hat - 1.96 * se, tau.hat + 1.96 * se)
 
@@ -36,7 +36,7 @@ plot(tau.hat,
      trajectory.alpha=.9,
      effect.alpha=.9,
      diagram.alpha=2, onset.alpha=.4, ci.alpha = .3) +
-  ggthemes::theme_fivethirtyeight() +
+  ggplot2::theme_bw() +
   ggplot2::theme(axis.title = element_text(),
                  plot.background = element_rect(fill = "white"),
                  panel.background = element_rect(fill = "white"),
