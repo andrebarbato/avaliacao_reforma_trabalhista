@@ -25,7 +25,7 @@ tau.hat <- synthdid_estimate(setup$Y, setup$N0, setup$T0)
 print(summary(tau.hat))
 
 # Calculate standard errors 
-se <- sqrt(vcov(-1.03, method='placebo'))
+se <- sqrt(vcov(tau.hat, method='placebo'))
 te_est <- sprintf('Point estimate for the treatment effect: %1.2f', tau.hat)
 CI <- sprintf('95%% CI (%1.2f, %1.2f)', tau.hat - 1.96 * se, tau.hat + 1.96 * se)
 

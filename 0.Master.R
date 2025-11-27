@@ -12,7 +12,12 @@ library(ggthemes)
 library(gtExtras)
 library(naniar)
 
+# Carregando funções para o fluxo de análise no ambiente
 source("06.Functions.R")
+
+# Carregando os dados
+data_model <- load_data()
+
 
 output_unr <- sdid_run(
   df = data_model,
@@ -22,6 +27,8 @@ output_unr <- sdid_run(
   treat = "treat",
   covariates = c("gdp", "inf_d", "exr_ref", "inr", "pos", "coc")
 )
+
+output_unr[[13]]
 
 teste <- sdid_sc(tau.hat) |> 
   dplyr::select(x, y, color) |> 
@@ -64,7 +71,8 @@ teste |>
     legend.position = "none"
   ) +
   labs(
+    title = "Gap: Tratado - Controle sintético",
     x = "Anos",
-    y = "Diferença entre o observado e o contrafactual"
+    y = "Diferença na taxa de desemprego"
   )
 

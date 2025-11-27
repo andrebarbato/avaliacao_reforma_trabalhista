@@ -11,7 +11,7 @@ sdid_run <- function(df,
   
   # Garantindo a reproducibilidade
   set.seed(123)
-  message(paste0("Calculando 1/14...", round(1/13*100, 2), "%"))
+  message(paste0("Calculando 1/15...", round(1/15*100, 2), "%"))
   
   # Limpando o efeito das variáveis independentes (X) da variável dependente (Y)
   df$adj.y <- xsynthdid::adjust.outcome.for.x(
@@ -21,7 +21,7 @@ sdid_run <- function(df,
     outcome = outcome,
     treatment = treat, 
     x= covariates)
-  message(paste0("Calculando 2/14...", round(2/13*100, 2), "%"))
+  message(paste0("Calculando 2/15...", round(2/15*100, 2), "%"))
   
   # Prepara a matriz pm considerando a variável independente ajustada
   pm <- synthdid::panel.matrices(as.data.frame(df),
@@ -29,17 +29,17 @@ sdid_run <- function(df,
                                  time = time,
                                  outcome = "adj.y",
                                  treatment = treat)
-  message(paste0("Calculando 3/14...", round(3/13*100, 2), "%"))
+  message(paste0("Calculando 3/15...", round(3/15*100, 2), "%"))
   
   # Estimate treatment effect using SynthDiD
   tau.hat <- synthdid_estimate(pm$Y, pm$N0, pm$T0)
-  message(paste0("Calculando 4/14...", round(4/13*100, 2), "%"))
+  message(paste0("Calculando 4/15...", round(4/15*100, 2), "%"))
   
   # Calculate standard errors 
   se <- sqrt(vcov(tau.hat, method='placebo'))
   te_est <- sprintf('Point estimate for the treatment effect: %1.2f', tau.hat)
   CI <- sprintf('95%% CI (%1.2f, %1.2f)', tau.hat - 1.96 * se, tau.hat + 1.96 * se)
-  message(paste0("Calculando 5/14...", round(5/13*100, 2), "%"))
+  message(paste0("Calculando 5/15...", round(5/15*100, 2), "%"))
   
   # Plot treatment effect estimates
   plot_treat_effect <- synthdid::synthdid_plot(
@@ -58,7 +58,7 @@ sdid_run <- function(df,
     ggplot2::theme(
       legend.position = "bottom"  # Muda a posição da legenda para baixo
     )
-  message(paste0("Calculando 6/14...", round(6/13*100, 2), "%"))
+  message(paste0("Calculando 6/15...", round(6/15*100, 2), "%"))
   
   # Plot control unit contributions
   control_unit_cont <- synthdid_units_plot(
@@ -71,7 +71,7 @@ sdid_run <- function(df,
     ggplot2::theme(
       axis.text.x = element_text(angle = 90, hjust = 1)  # Rotação dos rótulos do eixo x
     )
-  message(paste0("Calculando 7/14...", round(7/13*100, 2), "%"))
+  message(paste0("Calculando 7/15...", round(7/15*100, 2), "%"))
   
   # Create spaghetti plot with top 10 control units
   top.controls <- synthdid_controls(tau.hat)
@@ -96,7 +96,7 @@ sdid_run <- function(df,
     ggplot2::theme(
       legend.position = "bottom"  # Muda a posição da legenda para baixo
     )
-  message(paste0("Calculando 8/14...", round(8/13*100, 2), "%"))
+  message(paste0("Calculando 8/15...", round(8/15*100, 2), "%"))
   
   # calculando os efeitos fixos
   fe <- feols(adj.y ~ treat, 
@@ -104,14 +104,14 @@ sdid_run <- function(df,
               cluster = unit, 
               panel.id = unit, 
               fixef = c(unit, time))
-  message(paste0("Calculando 9/14...", round(9/13*100, 2), "%"))
+  message(paste0("Calculando 9/15...", round(9/15*100, 2), "%"))
   
   # Calculando os estimadores de DID e SC e comparando 
   tau.sc <- sc_estimate(pm$Y, pm$N0, pm$T0)
   tau.did <- did_estimate(pm$Y, pm$N0, pm$T0)
   estimates <- list(tau.did, tau.sc, tau.hat)
   names(estimates) = c('Diff-in-Diff', 'Synthetic Control', 'Synthetic Diff-in-Diff')
-  message(paste0("Calculando 10/14...", round(10/13*100, 2), "%"))
+  message(paste0("Calculando 10/15...", round(10/15*100, 2), "%"))
   
   # gráfico comparando os estimadores de DID, SC e SDID
   comp_plot <- synthdid_plot(
@@ -131,17 +131,21 @@ sdid_run <- function(df,
       legend.position = "bottom"  # Muda a posição da legenda para baixo
     )
   
-  message(paste0("Calculando 11/14...", round(11/13*100, 2), "%"))
+  message(paste0("Calculando 11/15...", round(11/15*100, 2), "%"))
   
   # Gráfico comparando os pesos dos controles e o erro padrão dos estimadores
   comp_se_unit_plot <- synthdid_units_plot(
     estimates, 
     se.method='placebo')
-  message(paste0("Calculando 12/14...", round(12/13*100, 2), "%"))
+  message(paste0("Calculando 12/15...", round(12/15*100, 2), "%"))
   
   # Tabela de pesos do controle sintético
   tab_control_weights <- synthdid::synthdid_controls(tau.hat)
-  message(paste0("Calculando 13/14...", round(12/13*100, 2), "%"))
+  message(paste0("Calculando 13/15...", round(13/15*100, 2), "%"))
+  
+  # Gerar o gráfico de gap entre o SC e o observado
+  sc_gap_plot <- gap_plot(est_sdid = tau.hat, est_sc = tau.sc)
+  message(paste0("Calculando 14/15...", round(14/15*100, 2), "%"))
   
   # lista de resultados
   outputSDID <- list(tau.hat, 
@@ -155,8 +159,9 @@ sdid_run <- function(df,
                      estimates,
                      comp_plot,
                      comp_se_unit_plot,
-                     tab_control_weights)
-  message(paste0("Calculando 13/13...", round(13/13*100, 2), "%"))
+                     tab_control_weights,
+                     sc_gap_plot)
+  message(paste0("Calculando 15/15...", round(15/15*100, 2), "%"))
   t_end <- Sys.time()
   
   message(paste("Processo finalizado em", round(t_end - t_start, 2), "minutos!"))
@@ -444,4 +449,80 @@ contract3 <- function (X, v)
     out = out + v[ii] * X[, , ii]
   }
   return(out)
+}
+
+# Função para carregar e preparando os dados para análise  ---------------------
+
+load_data <- function(file = "data/dados.RData") {
+ 
+  load(
+    file = file
+  )
+  
+  # preparando para o modelo
+  data_model <- data_sdid_tratado |>
+    dplyr::select(-c("earn_t", "earn_m", "earn_f", "iel_t", "iel_m", "iel_f",
+                     "cpi", "exr", "gini", "subt", "exped")) |>
+    dplyr::group_by(country) |>
+    dplyr::mutate(
+      d_unr = unr - lag(unr),
+      d_gdp = gdp - lag(gdp),
+      d_inf_d = inf_d - lag(inf_d),
+      v_exr = exr_ref / lag(exr_ref) - 1,
+      v_inr = inr /lag(inr) - 1,
+      d_coc = coc - lag(coc),
+      d_pos = pos - lag(pos),
+      d_gdppc = gdppc - lag(gdppc),
+      v_upop = upop / lag(upop) -1,
+      v_labf = labf / lag(labf) -1,
+      treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)
+    ) |> 
+    dplyr::ungroup() |> 
+    dplyr::filter(year %in% c(1996:2024))
+  
+  return(data_model)
+}
+
+# Função para plotar o gráfico de GAP entre o SC e o valor observado -----------
+gap_plot <- function(est_sdid,
+                     est_sc){
+  
+  #calculando o erro padrão para o SC
+  se_sc <- sqrt(vcov(est_sc, method='placebo'))
+  
+  df <- sdid_sc(est_sdid) |> 
+    dplyr::select(x, y, color) |> 
+    tidyr::pivot_wider(
+      values_from = y,
+      names_from = color
+    ) |> 
+    dplyr::rename(
+      sc = `synthetic control`
+    ) |> 
+    dplyr::mutate(
+      dif = treated - sc,
+      bottom = dif - (1.96 * se_sc),
+      upper = dif + (1.96 * se_sc)
+    ) 
+  
+  min <- min(df$bottom)
+  max <- max(df$upper)
+  
+  g <- df |> 
+    ggplot(aes(x = x, y = dif)) +
+    geom_line(size = 0.75) +
+    geom_ribbon(aes(ymin = bottom, ymax = upper), fill = "red", alpha = 0.2) +
+    ylim(min*1.5, max*1.5) +  
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+    theme_bw() +
+    theme(
+      legend.position = "none"
+    ) +
+    labs(
+      title = "Gap: Tratado - Controle sintético",
+      x = "Anos",
+      y = "Diferença na taxa de desemprego"
+    )
+  
+  return(g)
 }
