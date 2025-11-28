@@ -144,7 +144,7 @@ sdid_run <- function(df,
   message(paste0("Calculando 13/15...", round(13/15*100, 2), "%"))
   
   # Gerar o gráfico de gap entre o SC e o observado
-  sc_gap_plot <- gap_plot(est_sdid = tau.hat, est_sc = tau.sc)
+  sc_gap_plot <- gap_plot(est_sdid = tau.hat, y = outcome)
   message(paste0("Calculando 14/15...", round(14/15*100, 2), "%"))
   
   # lista de resultados
@@ -485,12 +485,9 @@ load_data <- function(file = "data/dados.RData") {
 
 # Função para plotar o gráfico de GAP entre o SC e o valor observado -----------
 gap_plot <- function(est_sdid,
-                     est_sc){
+                     y){
   
-  #calculando o erro padrão para o SC
-  se_sc <- sqrt(vcov(est_sc, method='placebo'))
-  
-  df <- sdid_sc(est_sdid) |> 
+    df <- sdid_sc(est_sdid) |> 
     dplyr::select(x, y, color) |> 
     tidyr::pivot_wider(
       values_from = y,
@@ -500,20 +497,17 @@ gap_plot <- function(est_sdid,
       sc = `synthetic control`
     ) |> 
     dplyr::mutate(
-      dif = treated - sc,
-      bottom = dif - (1.96 * se_sc),
-      upper = dif + (1.96 * se_sc)
-    ) 
+      dif = treated - sc) 
   
-  min <- min(df$bottom)
-  max <- max(df$upper)
+  min <- min(df$dif)
+  max <- max(df$dif)
   
   g <- df |> 
     ggplot(aes(x = x, y = dif)) +
     geom_line(size = 0.75) +
-    geom_ribbon(aes(ymin = bottom, ymax = upper), fill = "red", alpha = 0.2) +
     ylim(min*1.5, max*1.5) +  
     geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+    geom_vline(xintercept = 2017, linetype = "dashed", color = "black") +
     theme_bw() +
     theme(
       legend.position = "none"
@@ -521,7 +515,7 @@ gap_plot <- function(est_sdid,
     labs(
       title = "Gap: Tratado - Controle sintético",
       x = "Anos",
-      y = "Diferença na taxa de desemprego"
+      y = paste0("Diferença na ", y)
     )
   
   return(g)
