@@ -145,6 +145,7 @@ sdid_run <- function(df,
   
   # Gerar o gráfico de gap entre o SC e o observado
   sc_gap_plot <- gap_plot(est_sdid = tau.hat, y = outcome)
+  effect_curve <- synthdid::synthdid_effect_curve(tau.hat)
   message(paste0("Calculando 14/15...", round(14/15*100, 2), "%"))
   
   # lista de resultados
@@ -160,7 +161,8 @@ sdid_run <- function(df,
                      comp_plot,
                      comp_se_unit_plot,
                      tab_control_weights,
-                     sc_gap_plot)
+                     sc_gap_plot,
+                     effect_curve)
   message(paste0("Calculando 15/15...", round(15/15*100, 2), "%"))
   t_end <- Sys.time()
   
@@ -453,7 +455,8 @@ contract3 <- function (X, v)
 
 # Função para carregar e preparando os dados para análise  ---------------------
 
-load_data <- function(file = "data/dados.RData") {
+load_data <- function(file = "data/dados.RData",
+                      range = c(1996:2003)) {
  
   load(
     file = file
@@ -478,7 +481,7 @@ load_data <- function(file = "data/dados.RData") {
       treat = ifelse(country == "Brazil" & year >= 2018, 1, 0)
     ) |> 
     dplyr::ungroup() |> 
-    dplyr::filter(year %in% c(1996:2024))
+    dplyr::filter(year %in% c(range))
   
   return(data_model)
 }
@@ -499,14 +502,14 @@ gap_plot <- function(est_sdid,
     dplyr::mutate(
       dif = treated - sc) 
   
-  min <- min(df$dif)
+  min <- max(df$dif)*-1
   max <- max(df$dif)
   
   g <- df |> 
     ggplot(aes(x = x, y = dif)) +
     geom_line(size = 0.75) +
     ylim(min*1.5, max*1.5) +  
-    geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+    geom_hline(yintercept = 0, color = "red") +
     geom_vline(xintercept = 2017, linetype = "dashed", color = "black") +
     theme_bw() +
     theme(

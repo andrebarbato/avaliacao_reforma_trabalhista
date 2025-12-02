@@ -95,10 +95,10 @@ lac_indicators <- lac_indicators |>
 
 # carregando os dados baixados do WDI
 raw_data_wdi <- readr::read_csv(
-  file = "data/de931949-cc48-4fe6-a575-a512803713f8_Data.csv"
+  file = "data/fc017d4e-5cf8-46de-aa1e-0adf0d44157b_Data.csv"
 )
 
-raw_data_wdi <- raw_data_wdi[1:293930,]
+raw_data_wdi <- raw_data_wdi[1:363090,]
 
 lit_selected_countries <- c("Bolivia", "Chile", "Colombia",
                             "Dominican Republic", "Mexico", "Nicaragua",
@@ -180,7 +180,11 @@ data_sdid <- data_sdid |>
     iel_f = `Informal employment rate by sex (%): Female`,
     subt = `Subsidies and other transfers (% of expense)`,
     labf = `Labor force participation rate, total (% of total population ages 15+) (modeled ILO estimate)`,
-    exped = `Government expenditure on education, total (% of GDP)`
+    exped = `Government expenditure on education, total (% of GDP)`,
+    gcf_ag = `Gross capital formation (annual % growth)`,
+    gcf = `Gross capital formation (% of GDP)`,
+    nina = `Net investment in nonfinancial assets (% of GDP)`,
+    fdini = `Foreign direct investment, net inflows (% of GDP)`
     ) |> 
   dplyr::arrange(year,country)
 
